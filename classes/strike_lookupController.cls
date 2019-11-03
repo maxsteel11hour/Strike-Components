@@ -6,6 +6,16 @@ Website: http://www.lightningstrike.io
 GitHub: https://github.com/appiphony/Strike-Components
 License: BSD 3-Clause License
 -------------------------------------------------- */
+/*
+@Author : Prashant Menon
+@name : strike_lookupController
+@CreateDate : 
+@Description : 
+@Version : 1.0
+@reference : N/A
+@Modification Log :
+Developer             Date                    Description
+*/
 public with sharing class strike_lookupController {
     @AuraEnabled
     public static String getRecentRecords(String jsonString) {
