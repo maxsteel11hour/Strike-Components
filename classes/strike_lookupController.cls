@@ -16,6 +16,7 @@ License: BSD 3-Clause License
 @Modification Log :
 Developer             Date                    Description
 */
+
 public with sharing class strike_lookupController {
     @AuraEnabled
     public static String getRecentRecords(String jsonString) {
@@ -91,10 +92,11 @@ public with sharing class strike_lookupController {
         String query = strike_lookupController.getQuery(jsonMap);
         String searchField = String.escapeSingleQuotes((String)jsonMap.get('searchField'));
         String searchTerm = '';
+        //test
         
         //[PM 04-nov-19] Introduction of SOSL/SOQL Flag. flagSOSL if set to True; should trigger SOSL query instead of SOQL
         String flagSOSL = 'false';
-        list<sObject> searchResult = new list<sObject>(); 
+        list<sObject> searchResult = new list<sObject>();   
 
         String subtitleField;
 
@@ -175,7 +177,7 @@ public with sharing class strike_lookupController {
                 String searchField = String.escapeSingleQuotes((String)jsonMap.get('searchField'));
                 searchTerm = String.escapeSingleQuotes((String)jsonMap.get('searchTerm'));
 
-                if(sSOSLFlg.toLowerCase() != 'true' || searchTerm == '' || searchTerm == null || searchTerm.length() < 4 ){
+                if(flagSOSL.toLowerCase() != 'true' || searchTerm == '' || searchTerm == null || searchTerm.length() < 4 ){
                     filters.add(searchField + ' LIKE \'%' + searchTerm + '%\'');
                     flagSOSL = 'false';					   
                 }
@@ -219,7 +221,7 @@ public with sharing class strike_lookupController {
             query += ' ORDER BY ' + String.join(orders, ', ');
         }
 
-        if(sSOSLFlg.toLowerCase() == 'true' && (searchTerm != '' && searchTerm != null)){
+        if(flagSOSL.toLowerCase() == 'true' && (searchTerm != '' && searchTerm != null)){
             query+= ')';  
         }
 
