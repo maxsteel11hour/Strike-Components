@@ -81,6 +81,11 @@ public with sharing class strike_lookupController {
         String query = strike_lookupController.getQuery(jsonMap);
         String searchField = String.escapeSingleQuotes((String)jsonMap.get('searchField'));
         String searchTerm = '';
+        
+        //[PM 04-nov-19] Introduction of SOSL/SOQL Flag. flagSOSL if set to True; should trigger SOSL query instead of SOQL
+        String flagSOSL = 'false';
+        list<sObject> searchResult = new list<sObject>(); 
+
         String subtitleField;
 
         if (strike_lookupController.fieldNotEmpty(jsonMap, 'subtitleField')) {
@@ -91,6 +96,22 @@ public with sharing class strike_lookupController {
             searchTerm = String.escapeSingleQuotes((String)jsonMap.get('searchTerm'));
         }
 
+        //fetch SOSL Flag Value
+        if (strike_lookupController.fieldNotEmpty(jsonMap, 'flagSOSL')) {
+            flagSOSL = String.escapeSingleQuotes((String)jsonMap.get('flagSOSL'));
+        } 
+        //By Default - Length is > than 4, SOSL is employed : code switched off
+        if(flagSOSL.toLowerCase() != 'true' /*|| searchTerm.length() < 4 */)
+        {
+            searchResult = Database.query(query);
+            flagSOSL = 'false';								   
+        }    
+        else
+        {
+            list<list<sObject>> searchResultSOSL = Search.query(query);
+            searchResult = searchResultSOSL[0];
+        }
+
         if (String.isEmpty(subtitleField)) {
             for (sObject obj : Database.query(query)) {
                 data.add(new Map<String, Object>{
@@ -99,7 +120,7 @@ public with sharing class strike_lookupController {
                 });
             }
         } else {
-            for (sObject obj : Database.query(query)) {
+            for (sObject obj : searchResult) {
                 data.add(new Map<String, Object>{
                     'label' => strike_lookupController.getValue(obj, objType, searchField),
                     'sublabel' => strike_lookupController.getValue(obj, objType, subtitleField),
@@ -115,6 +136,9 @@ public with sharing class strike_lookupController {
     }
 
     private static String getQuery(Map<String, Object> jsonMap) {
+        String flagSOSL = 'false';
+        String searchTerm;
+
         Set<String> queryFields = new Set<String>{'Id'};
         List<String> filters = new List<String>();
         List<String> orders = new List<String>();
@@ -127,15 +151,36 @@ public with sharing class strike_lookupController {
             subtitleField = String.escapeSingleQuotes((String)jsonMap.get('subtitleField'));
             queryFields.add(subtitleField);
         }
+        
+        if (strike_lookupController.fieldNotEmpty(jsonMap, 'flagSOSL')){
+            //queryFields.add(String.escapeSingleQuotes((String)jsonMap.get('flagSOSL')));
+            flagSOSL = String.escapeSingleQuotes((String)jsonMap.get('flagSOSL'));
+        }       
 
         if (strike_lookupController.fieldNotEmpty(jsonMap, 'searchField')) {
-            queryFields.add(String.escapeSingleQuotes((String)jsonMap.get('searchField')));
+            String searchField1 = (String.escapeSingleQuotes((String)jsonMap.get('searchField')));
+            queryFields.addAll(new List<String>(searchField1.split(',')));
 
             if (strike_lookupController.fieldNotEmpty(jsonMap, 'searchTerm')) {
                 String searchField = String.escapeSingleQuotes((String)jsonMap.get('searchField'));
-                String searchTerm = String.escapeSingleQuotes((String)jsonMap.get('searchTerm'));
+                searchTerm = String.escapeSingleQuotes((String)jsonMap.get('searchTerm'));
 
-                filters.add(searchField + ' LIKE \'%' + searchTerm + '%\'');
+                if(sSOSLFlg.toLowerCase() != 'true' || searchTerm == '' || searchTerm == null || searchTerm.length() < 4 ){
+                    filters.add(searchField + ' LIKE \'%' + searchTerm + '%\'');
+                    flagSOSL = 'false';					   
+                }
+                else{
+                    String sTerm = ' LIKE \'%' + searchTerm + '%\'';
+                    String sFinalSearchField = (new List<String>(searchField.split(',')))[0]; 
+                    
+                    if(sFinalSearchField <> '' && sFinalSearchField <> null){
+                        String sFilter = '('+ String.join(new List<String>(sFinalSearchField.split(',')), sTerm+' OR ') + sTerm + ')';
+                        
+                        sFilter = '('+sFilter+')';                       
+                        
+                        filters.add(sFilter);
+                    }
+                }
             }
         }
 
@@ -147,8 +192,14 @@ public with sharing class strike_lookupController {
             orders.add(String.escapeSingleQuotes((String)jsonMap.get('order')));
         }
 
-        query = 'SELECT ' + String.join(new List<String>(queryFields), ', ');
-        query += ' FROM ' + obj;
+        if(flagSOSL.toLowerCase() != 'true' || searchTerm == '' || searchTerm == null || searchTerm.length() < 4){
+            query = 'SELECT ' + String.join(new List<String>(queryFields), ', ');
+            query += ' FROM ' + obj;
+        }
+        else{
+            query = 'FIND {' + escapeSosl(searchTerm) + '*} IN ALL FIELDS RETURNING ' + obj + '(' + String.join(new List<String>(queryFields), ', ') + ' ';  
+                
+        }
 
         if (filters.size() > 0) {
             query += ' WHERE ' + String.join(filters, ' AND ');
@@ -158,10 +209,15 @@ public with sharing class strike_lookupController {
             query += ' ORDER BY ' + String.join(orders, ', ');
         }
 
+        if(sSOSLFlg.toLowerCase() == 'true' && (searchTerm != '' && searchTerm != null)){
+            query+= ')';  
+        }
+
         if (strike_lookupController.fieldNotEmpty(jsonMap, 'limit')) {
             query += ' LIMIT ' + String.escapeSingleQuotes((String)jsonMap.get('limit'));
         }
 
+        //System.Debug('Final Query >> '+query);
         return query;
     }
 
@@ -222,6 +278,26 @@ public with sharing class strike_lookupController {
         }
 
         return String.valueOf(label);
+    }
+
+    private static String escapeSosl(String text ) {
+        String escapedText;
+
+        if ( String.isBlank( text ) ) {
+            escapedText = null;
+        } 
+        else {
+            escapedText = String.escapeSingleQuotes( text ) ;
+                       
+            Pattern myPattern = Pattern.compile( '(\\-)' );
+            Matcher myMatcher = myPattern.matcher( escapedText );
+            escapedText = myMatcher.replaceAll( '\\\\$1' );
+
+            // collapse repeated whitespace
+            escapedText = escapedText.replaceAll( '( )+', ' ' ).trim();
+        }
+        //System.debug( 'escaped sosl term: ' + escapedText );
+        return escapedText;
     }
 }
 /* --------------------------------------------------
