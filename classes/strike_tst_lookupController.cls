@@ -6,14 +6,24 @@ Website: http://www.lightningstrike.io
 GitHub: https://github.com/appiphony/Strike-Components
 License: BSD 3-Clause License
 -------------------------------------------------- */
-@isTest
+/*
+@Author : Prashant Menon
+@name : strike_lookupController
+@CreateDate : 04-Nov-2019
+@Description : 
+@Version : 1.0
+@reference : N/A
+@Modification Log :
+Developer             Date                    Description
+*/
+@isTest(SeeAllData=false)
 private class strike_tst_lookupController {
 
     @isTest static void test_getRecentRecords() {
         String jsonString = '{"searchField":"Name", "object": "Account", "filter": "Name = \'Test Account\'"}';
 
         Test.startTest();
-        String responseString = strike_lookupController.getRecentRecords(jsonString);
+        	String responseString = strike_lookupController.getRecentRecords(jsonString);
         Test.stopTest();
 
         Map<String, Object> response = (Map<String, Object>)JSON.deserializeUntyped(responseString);
@@ -134,6 +144,35 @@ private class strike_tst_lookupController {
 
         System.assertEquals(c.Id, record.get('value'));
     }
+    
+    @isTest static void test_getData_SOSL() {
+        Account a = new Account(Name='Test Account');
+        insert a;
+
+        String jsonString = '{"searchField":"Name", "object": "Account", "filter": "Name = \'Test Account\'", "order": "Name", "limit": "5", "searchTerm": "Test", "flagSOSL": "true"}';
+
+        //SOSL in Test returns Empty
+        //Source: https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_testing_SOSL.htm
+        Id [] fixedSearchResults= new Id[1];
+        fixedSearchResults[0] = a.id;
+//System.Debug('static -'+fixedSearchResults[0] );       
+        Test.setFixedSearchResults(fixedSearchResults);
+//System.Debug([FIND 'Test' IN ALL FIELDS RETURNING Account(id, name)]);
+        
+        Test.startTest();
+            String responseString = strike_lookupController.getRecords(jsonString);
+//System.Debug('Response ='+responseString);
+        Test.stopTest();
+
+        Map<String, Object> response = (Map<String, Object>)JSON.deserializeUntyped(responseString);
+        Map<string, Object> results = (Map<String, Object>)response.get('results');
+        List<Object> data =(List<Object>)results.get('data');
+
+        System.assertEquals(1, data.size());
+        Map<String, Object> record = (Map<String, Object>)data.get(0);
+        System.assertEquals(a.Id, record.get('value'));
+    }
+
 }
 /* --------------------------------------------------
 Copyright 2017 Appiphony, LLC

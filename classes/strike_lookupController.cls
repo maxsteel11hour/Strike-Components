@@ -15,6 +15,7 @@ License: BSD 3-Clause License
 @reference : N/A
 @Modification Log :
 Developer             Date                    Description
+Prashant              04-Nov                  Fix for SOSL Query running on DB.Query. used Search
 */
 
 public with sharing class strike_lookupController {
@@ -45,9 +46,7 @@ public with sharing class strike_lookupController {
                     'searchTerm' => ''
                 };
             }
-        } catch (Exception e) {
-            responseData.addError(e.getMessage());
-        }
+        } catch (Exception e) { responseData.addError(e.getMessage());}
 
         return responseData.getJsonString();
     }
@@ -63,9 +62,7 @@ public with sharing class strike_lookupController {
             String objectLabel = Schema.describeSObjects(new List<String>{obj})[0].getLabel();
 
             responseData.results.put('objectLabel', objectLabel);
-        } catch (Exception e) {
-            responseData.addError(e.getMessage());
-        }
+        } catch (Exception e) { responseData.addError(e.getMessage()); }
 
         return responseData.getJsonString();
     }
@@ -78,25 +75,22 @@ public with sharing class strike_lookupController {
         try {
             Map<String, Object> jsonMap = (Map<String, Object>)JSON.deserializeUntyped(jsonString);
             responseData.results = strike_lookupController.getData(jsonMap);
-        } catch (Exception e) {
-            responseData.addError(e.getMessage());
-        }
+        } catch (Exception e) { responseData.addError(e.getMessage()); }
 
         return responseData.getJsonString();
     }
 
     private static Map<String, Object> getData(Map<String, Object> jsonMap) {
         List<Map<String, Object>> data = new List<Map<String, Object>>();
-
+//System.Debug('JSON Map :'+jsonMap);
         String objType = String.escapeSingleQuotes((String)jsonMap.get('object'));
         String query = strike_lookupController.getQuery(jsonMap);
         String searchField = String.escapeSingleQuotes((String)jsonMap.get('searchField'));
         String searchTerm = '';
-        //test
         
         //[PM 04-nov-19] Introduction of SOSL/SOQL Flag. flagSOSL if set to True; should trigger SOSL query instead of SOQL
         String flagSOSL = 'false';
-        list<sObject> searchResult = new list<sObject>();   
+        list<sObject> searchResult = new list<sObject>(); 
 
         String subtitleField;
 
@@ -111,27 +105,33 @@ public with sharing class strike_lookupController {
         //fetch SOSL Flag Value
         if (strike_lookupController.fieldNotEmpty(jsonMap, 'flagSOSL')) {
             flagSOSL = String.escapeSingleQuotes((String)jsonMap.get('flagSOSL'));
-        } 
+        }
+       
+//system.debug('SOSL Flag ='+flagSOSL);       
         //By Default - Length is > than 4, SOSL is employed : code switched off
-        if(flagSOSL.toLowerCase() != 'true' /*|| searchTerm.length() < 4 */)
+        if(flagSOSL.toLowerCase() != 'true')
         {
+//system.debug('SOQL Query executed');
             searchResult = Database.query(query);
             flagSOSL = 'false';								   
         }    
         else
         {
+//system.debug('SOSL Query executed ='+ query);            
             list<list<sObject>> searchResultSOSL = Search.query(query);
+//system.debug(searchResultSOSL);            
             searchResult = searchResultSOSL[0];
+//system.debug(searchResult);             
         }
 
         if (String.isEmpty(subtitleField)) {
-            for (sObject obj : Database.query(query)) {
+            for (sObject obj : searchResult) {
                 data.add(new Map<String, Object>{
                     'label' => strike_lookupController.getValue(obj, objType, searchField),
                     'value' => obj.get('Id')
                 });
             }
-        } else {
+        } else {           
             for (sObject obj : searchResult) {
                 data.add(new Map<String, Object>{
                     'label' => strike_lookupController.getValue(obj, objType, searchField),
@@ -168,7 +168,7 @@ public with sharing class strike_lookupController {
             //queryFields.add(String.escapeSingleQuotes((String)jsonMap.get('flagSOSL')));
             flagSOSL = String.escapeSingleQuotes((String)jsonMap.get('flagSOSL'));
         }       
-
+system.debug('flagSOSL ='+flagSOSL);
         if (strike_lookupController.fieldNotEmpty(jsonMap, 'searchField')) {
             String searchField1 = (String.escapeSingleQuotes((String)jsonMap.get('searchField')));
             queryFields.addAll(new List<String>(searchField1.split(',')));
@@ -177,14 +177,15 @@ public with sharing class strike_lookupController {
                 String searchField = String.escapeSingleQuotes((String)jsonMap.get('searchField'));
                 searchTerm = String.escapeSingleQuotes((String)jsonMap.get('searchTerm'));
 
-                if(flagSOSL.toLowerCase() != 'true' || searchTerm == '' || searchTerm == null || searchTerm.length() < 4 ){
+                if(flagSOSL.toLowerCase() != 'true' || searchTerm == '' || searchTerm == null){
                     filters.add(searchField + ' LIKE \'%' + searchTerm + '%\'');
-                    flagSOSL = 'false';					   
+                    flagSOSL = 'false';	
+//system.debug('SOQL Query');                    
                 }
                 else{
                     String sTerm = ' LIKE \'%' + searchTerm + '%\'';
                     String sFinalSearchField = (new List<String>(searchField.split(',')))[0]; 
-                    
+//system.debug('SOSL Query');                      
                     if(sFinalSearchField <> '' && sFinalSearchField <> null){
                         String sFilter = '('+ String.join(new List<String>(sFinalSearchField.split(',')), sTerm+' OR ') + sTerm + ')';
                         
@@ -229,7 +230,7 @@ public with sharing class strike_lookupController {
             query += ' LIMIT ' + String.escapeSingleQuotes((String)jsonMap.get('limit'));
         }
 
-        //System.Debug('Final Query >> '+query);
+System.Debug('Final Query >> '+query);
         return query;
     }
 
