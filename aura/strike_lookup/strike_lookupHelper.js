@@ -1,103 +1,129 @@
-/*Strike by Appiphony
+/*Strike by Appiphony 
 
 Version: 1.0.0
 Website: http://www.lightningstrike.io
 GitHub: https://github.com/appiphony/Strike-Components
 License: BSD 3-Clause License*/
+/*
+    @name : strike_lookup  
+    @CreateDate : 04 Nov 2019
+    @Description : Lookup component helper
+    @Version : 1.0
+    @reference : N/A
+    @Modification Log :
+    Developer             Date                    Description
+    PM					04 NOV 19				Added components of SOQL Query
+ */ 
 ({
-    checkIfInitialized: function(component, event, helper) {
-        var initCallsRunning = component.get('v.initCallsRunning');
+    checkIfInitialized: function(component, event, helper) {  
+        var initCallsRunning = component.get("v.initCallsRunning");
 
         if (--initCallsRunning < 0) {
             initCallsRunning = 0;
         }
 
-        component.set('v.initCallsRunning', initCallsRunning);
+        component.set("v.initCallsRunning", initCallsRunning);
     },
     closeMenu: function(component, event, helper) {
-        component.set('v.focusIndex', null);
-        component.set('v.openMenu', false);
+        component.set("v.focusIndex", null);
+        component.set("v.openMenu", false);
     },
     getParams: function(component, event, helper) {
-        var filter = component.get('v.filter');
-        var limit = component.get('v.limit');
-        var object = component.get('v.object');
-        var order = component.get('v.order');
-        var searchField = component.get('v.searchField');
-        var subtitleField = component.get('v.subtitleField');
+        var filter = component.get("v.filter");
+        var limit = component.get("v.limit");
+        var object = component.get("v.object");
+        var order = component.get("v.order");
+        //console.log(order);
+        var searchField = component.get("v.searchField");
+        var subtitleField = component.get("v.subtitleField");
+        
+        //introduction of prelim. SOSL into strike cmp
+        var  flagSOSL = component.get("v.flagSOSL");
 
         return {
-            filter: filter,
-            limit: limit,
-            object: object,
-            order: order,
-            searchField: searchField,
-            subtitleField: subtitleField
+            filter		: filter,
+            limit		: limit,
+            object		: object,
+            order		: order,
+            searchField	: searchField,
+            subtitleField: subtitleField,
+            flagSOSL	:  flagSOSL 
         };
     },
     getRecentRecords: function(component, event, helper) {
+/*	can cause Lookup loading delay issue */
         var returnedRecords = [];
 
-        var getRecordsAction = component.get('c.getRecentRecords');
+        var getRecordsAction = component.get("c.getRecentRecords");
 
         getRecordsAction.setParams({
             jsonString: JSON.stringify(helper.getParams(component, event, helper))
         });
 
         getRecordsAction.setCallback(this, function(res) {
-            if (res.getState() === 'SUCCESS') {
+            if (res.getState() === "SUCCESS") {
                 var returnValue = JSON.parse(res.getReturnValue());
 
                 if (returnValue.isSuccess) {
                     returnValue.results.data.forEach(function(record) {
                         returnedRecords.push({
-                            label: record.label,
-                            sublabel: record.sublabel,
-                            value: record.value
+                            label		: record.label,
+                            sublabel	: record.sublabel,
+                            value		: record.value /*,
+                            sideSubLabel: record.sideSubLabel,
+                            subLabel2	: record.subLabel2,
+                            subLabel3	: record.subLabel3 */
                         });
                     });
                 }
             }
-            component.set('v.recentRecords', returnedRecords);
+            component.set("v.recentRecords", returnedRecords);
 
             helper.checkIfInitialized(component, event, helper);
         });
 
-        $A.enqueueAction(getRecordsAction);
+        $A.enqueueAction(getRecordsAction);    
     },
     getRecordByValue: function(component, event, helper) {
-        var value = component.get('v.value');
+
+        var value = component.get("v.value");
 
         if (!value) {
-            component.set('v.valueLabel', null);
-            component.set('v.valueSublabel', null);
+            component.set("v.valueLabel", null);
+            component.set("v.valueSublabel", null);       
             helper.checkIfInitialized(component, event, helper);
 
             return;
         }
 
-        var getRecordsAction = component.get('c.getRecords');
+        var getRecordsAction = component.get("c.getRecords");
         var params = helper.getParams(component, event, helper);
 
+        //If ID is present, why do we need filters to showcase value
+        /*
         if ($A.util.isEmpty(params.filter)) {
-            params.filter = 'Id = \'' + value + '\'';
+            params.filter = "Id = \'" + value + "\'";
         } else {
-            params.filter = 'Id = \'' + value + '\' AND (' + params.filter + ')';
+            params.filter = "Id = \'" + value + "\' AND (" + params.filter + ")";
         }
+        */
+        params.filter = "Id = \'" + value + "\'";
+        
+        params.flagSOSL = "false";
 
         getRecordsAction.setParams({
             jsonString: JSON.stringify(params)
         });
 
         getRecordsAction.setCallback(this, function(res) {
-            if (res.getState() === 'SUCCESS') {
+            if (res.getState() === "SUCCESS") {
                 var returnValue = JSON.parse(res.getReturnValue());
-
                 if (returnValue.isSuccess) {
                     returnValue.results.data.forEach(function(record) {
-                        component.set('v.valueLabel', record.label);
-                        component.set('v.valueSublabel', record.sublabel);
+                        component.set("v.valueLabel", record.label);
+                        component.set("v.valueSublabel", record.sublabel);
                     });
+                    helper.setAlternateLabel(component, event);
                 }
             }
 
@@ -106,21 +132,22 @@ License: BSD 3-Clause License*/
 
         $A.enqueueAction(getRecordsAction);
     },
+    
     getRecordLabel: function(component, event, helper) {
-        var getRecordLabelAction = component.get('c.getRecordLabel');
+        var getRecordLabelAction = component.get("c.getRecordLabel");
 
         getRecordLabelAction.setParams({
             jsonString: JSON.stringify({
-                object: component.get('v.object')
+                object: component.get("v.object")
             })
         });
 
         getRecordLabelAction.setCallback(this, function(res) {
-            if (res.getState() === 'SUCCESS') {
+            if (res.getState() === "SUCCESS") {
                 var returnValue = JSON.parse(res.getReturnValue());
 
                 if (returnValue.isSuccess) {
-                    component.set('v.objectLabel', returnValue.results.objectLabel);
+                    component.set("v.objectLabel", returnValue.results.objectLabel);
                 }
             }
 
@@ -130,51 +157,51 @@ License: BSD 3-Clause License*/
         $A.enqueueAction(getRecordLabelAction);
     },
     getRecordsBySearchTerm: function(component, event, helper) {
-        var searchTerm = component.find('lookupInput').getElement().value;
-
-        var lastSearchTerm = component.get('v.lastSearchTerm');
-        var searchTimeout = component.get('v.searchTimeout');
-        var showRecentRecords = component.get('v.showRecentRecords');
+        var searchTerm = component.find("lookupInput").getElement().value;
+//console.log("searchTerm="+searchTerm);
+        var lastSearchTerm = component.get("v.lastSearchTerm");
+        var searchTimeout = component.get("v.searchTimeout");
+        var showRecentRecords = component.get("v.showRecentRecords");
 
         clearTimeout(searchTimeout);
 
         if ($A.util.isEmpty(searchTerm)) {
             if (showRecentRecords) {
-                helper.setRecords(component, event, helper, component.get('v.recentRecords'));
+                helper.setRecords(component, event, helper, component.get("v.recentRecords"));
             } else {
                 helper.setRecords(component, event, helper, []);
             }
 
             return;
         } else if (searchTerm === lastSearchTerm) {
-            component.set('v.searching', false);
+            component.set("v.searching", false);
             helper.openMenu(component, event, helper);
 
             return;
         }
         
-        component.set('v.openMenu', true);
-        component.set('v.searching', true);
+        component.set("v.openMenu", true);
+        component.set("v.searching", true);
 
-        component.set('v.searchTimeout', setTimeout($A.getCallback(function() {
+        component.set("v.searchTimeout", setTimeout($A.getCallback(function() {
             if (!component.isValid()) {
                 return;
             }
 
-            var getRecordsAction = component.get('c.getRecords');
+            var getRecordsAction = component.get("c.getRecords");
             var params = helper.getParams(component, event, helper);
 
-            params.searchTerm = component.find('lookupInput').getElement().value;
+            params.searchTerm = component.find("lookupInput").getElement().value;
 
             getRecordsAction.setParams({
                 jsonString: JSON.stringify(params)
             });
 
             getRecordsAction.setCallback(this, function(res) {
-                if (res.getState() === 'SUCCESS') {
+                if (res.getState() === "SUCCESS") {
                     var returnValue = JSON.parse(res.getReturnValue());
 
-                    if (returnValue.isSuccess && returnValue.results.searchTerm === component.find('lookupInput').getElement().value) {
+                    if (returnValue.isSuccess && returnValue.results.searchTerm === component.find("lookupInput").getElement().value) {
                         var returnedRecords = [];
 
                         returnValue.results.data.forEach(function(record) {
@@ -196,36 +223,36 @@ License: BSD 3-Clause License*/
         }), 200));
     },
     setRecords: function(component, event, helper, returnedRecords) {
-        component.set('v.focusIndex', null);
-        component.set('v.lastSearchTerm', component.find('lookupInput').getElement().value);
-        component.set('v.records', returnedRecords);
-        component.set('v.searching', false);
+        component.set("v.focusIndex", null);
+        component.set("v.lastSearchTerm", component.find("lookupInput").getElement().value);
+        component.set("v.records", returnedRecords);
+        component.set("v.searching", false);
 
         helper.openMenu(component, event, helper);
     },
     openMenu: function(component, event, helper) {
-        var showRecentRecords = component.get('v.showRecentRecords') && !$A.util.isEmpty(component.get('v.recentRecords'));
-        component.set('v.openMenu', !component.get('v.disabled') && (!$A.util.isEmpty(component.get('v.lastSearchTerm')) || showRecentRecords));
+        var showRecentRecords = component.get("v.showRecentRecords") && !$A.util.isEmpty(component.get("v.recentRecords"));
+        component.set("v.openMenu", !component.get("v.disabled") && (!$A.util.isEmpty(component.get("v.lastSearchTerm")) || showRecentRecords));
     },
     closeMobileLookup: function(component, event, helper) {
-        $A.util.removeClass(component.find('lookup'), 'sl-lookup--open');
-        component.find('lookupInput').getElement().value = ''
+        $A.util.removeClass(component.find("lookup"), "sl-lookup--open");
+        component.find("lookupInput").getElement().value = ""
     },
     updateValueByFocusIndex: function(component, event, helper) {
-        var focusIndex = component.get('v.focusIndex');
+        var focusIndex = component.get("v.focusIndex");
 
-        if (focusIndex == null) {
+        if (focusIndex === null) {
             focusIndex = 0;
         }
 
-        var records = component.get('v.records');
+        var records = component.get("v.records");
 
-        if (focusIndex < records.length) {
-            component.set('v.value', records[focusIndex].value);
-            component.set('v.valueLabel', records[focusIndex].label);
-            component.set('v.valueSublabel', records[focusIndex].sublabel);
+        if (focusIndex < records.length) {               
+            component.set("v.value", records[focusIndex].value);
+            component.set("v.valueLabel", records[focusIndex].label);
+            component.set("v.valueSublabel", records[focusIndex].sublabel);
+         
             component.find('lookupInput').getElement().value = '';
-
             helper.closeMenu(component, event, helper);
         } else if (focusIndex === records.length) {
             helper.addNewRecord(component, event, helper);
@@ -234,20 +261,22 @@ License: BSD 3-Clause License*/
         helper.closeMobileLookup(component, event, helper);
     },
     addNewRecord: function(component, event, helper) {
-        if (!component.get('v.allowNewRecords')) {
+        
+        if (!component.get("v.allowNewRecords")) {
             return;
         }
 
         var addRecordEvent;
-        var overrideNewEvent = component.get('v.overrideNewEvent');
+        var overrideNewEvent = component.get("v.overrideNewEvent");
 
         if (overrideNewEvent) {
-            addRecordEvent = component.getEvent('strike_evt_addNewRecord');
+            addRecordEvent = component.getEvent("strike_evt_addNewRecord");
         } else {
-            addRecordEvent = $A.get('e.force:createRecord');
+            addRecordEvent = $A.get("e.force:createRecord");
 
             addRecordEvent.setParams({
-                entityApiName: component.get('v.object')
+                entityApiName: component.get("v.object"),
+                recordTypeId: component.get("v.newRecType") //Additional Param
             });
         }
         addRecordEvent.fire();
@@ -255,11 +284,11 @@ License: BSD 3-Clause License*/
         helper.closeMenu(component, event, helper);
     },
     moveRecordFocusUp: function(component, event, helper) {
-        var openMenu = component.get('v.openMenu');
+        var openMenu = component.get("v.openMenu");
 
         if (openMenu) {
-            var focusIndex = component.get('v.focusIndex');
-            var options = component.find('lookupMenu').getElement().getElementsByTagName('li');
+            var focusIndex = component.get("v.focusIndex");
+            var options = component.find("lookupMenu").getElement().getElementsByTagName("li");
 
             if (focusIndex === null || focusIndex === 0) {
                 focusIndex = options.length - 1;
@@ -267,15 +296,15 @@ License: BSD 3-Clause License*/
                 --focusIndex;
             }
 
-            component.set('v.focusIndex', focusIndex);
+            component.set("v.focusIndex", focusIndex);
         }
     },
     moveRecordFocusDown: function(component, event, helper) {
-        var openMenu = component.get('v.openMenu');
+        var openMenu = component.get("v.openMenu");
 
         if (openMenu) {
-            var focusIndex = component.get('v.focusIndex');
-            var options = component.find('lookupMenu').getElement().getElementsByTagName('li');
+            var focusIndex = component.get("v.focusIndex");
+            var options = component.find("lookupMenu").getElement().getElementsByTagName("li");
 
             if (focusIndex === null || focusIndex === options.length - 1) {
                 focusIndex = 0;
@@ -283,7 +312,7 @@ License: BSD 3-Clause License*/
                 ++focusIndex;
             }
 
-            component.set('v.focusIndex', focusIndex);
+            component.set("v.focusIndex", focusIndex);
         }
     }
 })

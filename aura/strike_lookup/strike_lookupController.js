@@ -4,11 +4,21 @@ Version: 1.0.0
 Website: http://www.lightningstrike.io
 GitHub: https://github.com/appiphony/Strike-Components
 License: BSD 3-Clause License*/
+/*
+    @name : strike_lookup  
+    @CreateDate : 04 Nov 2019
+    @Description : Lookup component controller
+    @Version : 1.0
+    @reference : N/A
+    @Modification Log :
+    Developer             Date                    Description
+    PM					04 NOV 19				Added components of SOQL Query
+ */ 
 ({
     onInit: function(component, event, helper) {
         component.handleClick = $A.getCallback(function() {
             if (!component.isValid()) {
-                window.removeEventListener('click', component.handleClick);
+                window.removeEventListener("click", component.handleClick);
 
                 return;
             }
@@ -16,9 +26,9 @@ License: BSD 3-Clause License*/
             helper.closeMenu(component, event, helper);
         });
 
-        window.addEventListener('click', component.handleClick);
+        window.addEventListener("click", component.handleClick);
 
-        component.set('v.initCallsRunning', 3);
+        component.set("v.initCallsRunning", 3);
 
         helper.getRecentRecords(component, event, helper);
         helper.getRecordByValue(component, event, helper);
@@ -26,20 +36,21 @@ License: BSD 3-Clause License*/
 
         var randomNumber = Math.floor(1000 + Math.random() * 9000);
 
-        component.set('v.idNumber', randomNumber);
+        component.set("v.idNumber", randomNumber);
         
-        component.set('v.isMobile', $A.get('$Browser.formFactor') === 'DESKTOP' ? false : true);
+        component.set("v.isMobile", $A.get("$Browser.formFactor") === "DESKTOP" ? false : true);
+
     },
     handleInputClick: function(component, event, helper) {
         event.stopPropagation();
     },
     handleSearchingClick: function(component, event, helper) {
-        component.set('v.searching', false);
+        component.set("v.searching", false);
     },
     handleInputFocus: function(component, event, helper) {
-        $A.util.addClass(component.find('lookup'), 'sl-lookup--open');
+        $A.util.addClass(component.find("lookup"), "sl-lookup--open");
         
-        if (component.get('v.disabled')) {
+        if (component.get("v.disabled")) {
             return;
         }
 
@@ -49,7 +60,7 @@ License: BSD 3-Clause License*/
         helper.closeMobileLookup(component, event, helper);
     },
     handleInputKeyDown: function(component, event, helper) {
-        if (component.get('v.disabled')) {
+        if (component.get("v.disabled")) {
             return;
         }
 
@@ -62,12 +73,12 @@ License: BSD 3-Clause License*/
         }
     },
     handleInputKeyPress: function(component, event, helper) {
-        if (component.get('v.disabled')) {
+        if (component.get("v.disabled")) {
             return;
         }
     },
     handleInputKeyUp: function(component, event, helper) {
-        if (component.get('v.disabled')) {
+        if (component.get("v.disabled")) {
             return;
         }
 
@@ -89,12 +100,13 @@ License: BSD 3-Clause License*/
     },
 
     handleRecordClick: function(component, event, helper) {
+ //switch off       
         event.preventDefault();
         event.stopPropagation();
 
         var focusIndex = event.currentTarget.dataset.index;
 
-        component.set('v.focusIndex', focusIndex);
+        component.set("v.focusIndex", focusIndex);
 
         helper.updateValueByFocusIndex(component, event, helper);
     },
@@ -108,35 +120,35 @@ License: BSD 3-Clause License*/
         event.preventDefault();
         event.stopPropagation();
 
-        component.set('v.value', '');
+        component.set("v.value", "");
 
         helper.getRecordsBySearchTerm(component, event, helper);
 
         window.setTimeout($A.getCallback(function() {
-            component.find('lookupInput').getElement().focus();
+            component.find("lookupInput").getElement().focus();
         }), 1);
     },
 
     handleFocusIndexChange: function(component, event, helper) {
-        var focusIndex = component.get('v.focusIndex');
-        var lookupMenu = component.find('lookupMenu').getElement();
+        var focusIndex = component.get("v.focusIndex");
+        var lookupMenu = component.find("lookupMenu").getElement();
 
         if (!$A.util.isEmpty(lookupMenu)) {
-            var options = lookupMenu.getElementsByTagName('li');
+            var options = lookupMenu.getElementsByTagName("li");
             var focusScrollTop = 0;
             var focusScrollBottom = 0;
 
             for (var i = 0; i < options.length; i++) {
-                var optionSpan = options[i].getElementsByTagName('span')[0];
+                var optionSpan = options[i].getElementsByTagName("span")[0];
 
                 if (i === focusIndex) {
-                    $A.util.addClass(optionSpan, 'slds-has-focus');
+                    $A.util.addClass(optionSpan, "slds-has-focus");
                 } else {
                     if (i < focusIndex) {
                         focusScrollTop += options[i].scrollHeight;
                     }
 
-                    $A.util.removeClass(optionSpan, 'slds-has-focus');
+                    $A.util.removeClass(optionSpan, "slds-has-focus");
                 }
             }
 
@@ -152,73 +164,77 @@ License: BSD 3-Clause License*/
         }
     },
     handleValueChange: function(component, event, helper) {
-        var value = component.get('v.value');
-
+	        
+        var value = component.get("v.value");
+        
         if ($A.util.isEmpty(value)) {
-            component.set('v.valueLabel', '');
-        } else if ($A.util.isEmpty(component.get('v.valueLabel'))) {
+            component.set("v.valueLabel", "");
+        } else if ($A.util.isEmpty(component.get("v.valueLabel"))) {
             helper.getRecordByValue(component, event, helper);
         }
     },
-
+    /*
+    handleInputVChg: function(component, event, helper) {
+        //alert("Hello World");
+    }, */
     handleFilterChange: function(component, event, helper) {
-        component.set('v.initCallsRunning', 2);
+        component.set("v.initCallsRunning", 2);
 
         helper.getRecordByValue(component, event, helper);
         helper.getRecentRecords(component, event, helper);
 
-        component.find('lookupInput').getElement().value = '';
+        component.find("lookupInput").getElement().value = "";
         helper.getRecordsBySearchTerm(component, event, helper);
     },
     handleLimitChange: function(component, event, helper) {
-        component.find('lookupInput').getElement().value = '';
+        component.find("lookupInput").getElement().value = "";
         helper.getRecordsBySearchTerm(component, event, helper);
     },
     handleObjectChange: function(component, event, helper) {
-        component.set('v.initCallsRunning', 3);
+        component.set("v.initCallsRunning", 3);
 
         helper.getRecentRecords(component, event, helper);
         helper.getRecordByValue(component, event, helper);
         helper.getRecordLabel(component, event, helper);
 
-        component.find('lookupInput').getElement().value = '';
+        component.find("lookupInput").getElement().value = "";
         helper.getRecordsBySearchTerm(component, event, helper);
     },
     handleOrderChange: function(component, event, helper) {
-        component.set('v.initCallsRunning', 1);
+        component.set("v.initCallsRunning", 1);
 
         helper.getRecentRecords(component, event, helper);
 
-        component.find('lookupInput').getElement().value = '';
+        component.find("lookupInput").getElement().value = "";
         helper.getRecordsBySearchTerm(component, event, helper);
     },
     handleSearchfieldChange: function(component, event, helper) {
-        component.set('v.initCallsRunning', 2);
-
-        helper.getRecentRecords(component, event, helper);
-        helper.getRecordByValue(component, event, helper);
-
-        component.find('lookupInput').getElement().value = '';
-        helper.getRecordsBySearchTerm(component, event, helper);
+        try{     
+            component.set("v.initCallsRunning", 2);
+            helper.getRecentRecords(component, event, helper);
+            helper.getRecordByValue(component, event, helper);
+            component.find("lookupInput").getElement().value = "";
+            helper.getRecordsBySearchTerm(component, event, helper);
+        } catch (err){console.log(err);}
     },
     handleSubtitlefieldChange: function(component, event, helper) {
-        component.set('v.initCallsRunning', 1);
+        component.set("v.initCallsRunning", 1);
 
         helper.getRecentRecords(component, event, helper);
 
-        component.find('lookupInput').getElement().value = '';
+        component.find("lookupInput").getElement().value = "";
         helper.getRecordsBySearchTerm(component, event, helper);
     },
 
     showError: function(component, event, helper) {
-        var errorMessage = event.getParam('arguments').errorMessage;
+        var errorMessage = event.getParam("arguments").errorMessage;
 
-        component.set('v.errorMessage', errorMessage);
-        component.set('v.error', true);
+        component.set("v.errorMessage", errorMessage);
+        component.set("v.error", true);
     },
     hideError: function(component, event, helper) {
-        component.set('v.errorMessage', null);
-        component.set('v.error', false);
+        component.set("v.errorMessage", null);
+        component.set("v.error", false);
     }
 })
 /*Copyright 2017 Appiphony, LLC

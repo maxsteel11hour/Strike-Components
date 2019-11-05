@@ -6,36 +6,64 @@ Website: http://www.lightningstrike.io
 GitHub: https://github.com/appiphony/Strike-Components
 License: BSD 3-Clause License
 -->
+<!--
+@name : strike_lookup  
+@CreateDate : 04 Nov 2019
+@Description : Lookup component
+@Version : 1.0
+@reference : N/A
+@Modification Log :
+Developer             Date                    Description
+PM					04 NOV 19				Added components of SOQL Query
+-->
 <aura:component controller="strike_lookupController" access="global">
     <!-- Required -->
-    <aura:attribute name="label" type="String" required="true" description="String value displayed above the menu used to describe the component"/>
-    <aura:attribute name="object" type="String" required="true" description="String value that determines which records to search"/>
-    <aura:attribute name="searchField" type="String" required="true" description="String value that determines which field on the object will be displayed and searched against"/>
+    <aura:attribute name="label" 				type="String" required="true" 	
+                    description="String value displayed above the menu used to describe the component"/>
+    <aura:attribute name="object" 				type="String" required="true" 	
+                    description="String value that determines which records to search"/>
+    <aura:attribute name="searchField" 			type="String" required="true" 	
+                    description="String value that determines which field on the object will be displayed and searched against"/>
 
-    <aura:attribute name="helpText" type="String" description="String value when hovering over the help box"/>
-    <aura:attribute name="helpTextPlacement" type="String" default="auto top" description="Determines position of the helpText"/>
-    <aura:attribute name="class" type="String" description="A CSS class that will be applied to the outer element. This style is in addition to base classes associated with the component"/>
-    <aura:attribute name="placeholder" type="String" description="String value that will appear when no record is selected"/>
-    <aura:attribute name="value" type="String" description="String value that holds the Id of the selected record"/>
+    <aura:attribute name="helpText" 			type="String" 					
+                    description="String value when hovering over the help box"/>
+    <aura:attribute name="helpTextPlacement" 	type="String" 					default="auto top"
+                    description="Determines position of the helpText"/>
+    <aura:attribute name="class" 				type="String" 					
+                    description="A CSS class that will be applied to the outer element. This style is in addition to base classes associated with the component"/>
+    <aura:attribute name="placeholder" 			type="String" 					
+                    description="String value that will appear when no record is selected"/>
+    <aura:attribute name="value" 				type="String" 
+                    description="String value that holds the Id of the selected record"/>
 
-    <aura:attribute name="iconName" type="String" description="String value that determines the icon name or path"/>
-    <aura:attribute name="customIcon" type="Boolean" description="Determines whether the icon is custom or standard"/>
+    <aura:attribute name="iconName" 			type="String" 
+                    description="String value that determines the icon name or path"/>
+    <aura:attribute name="customIcon" 			type="Boolean" 
+                    description="Determines whether the icon is custom or standard"/>
 
     <!-- Query -->
-    <aura:attribute name="subtitleField" type="String" description="String value that determines which field to display second from search results"/>
-    <aura:attribute name="filter" type="String" description="String value that determines how the SOQL search will be filtered"/>
-    <aura:attribute name="order" type="String" description="String value that determines how the SOQL search will be ordered"/>
-    <aura:attribute name="limit" type="String" description="String value that determines how many records are returned in the SOQL search"/>
+    <aura:attribute name="subtitleField" 		type="String" description="String value that determines which field to display second from search results"/>
+    <aura:attribute name="filter" 				type="String" description="String value that determines how the SOQL search will be filtered"/>
+    <aura:attribute name="order" 				type="String" description="String value that determines how the SOQL search will be ordered"/>
+    <aura:attribute name="limit" 				type="String" description="String value that determines how many records are returned in the SOQL search"/>
+
+    <!-- SOSL Query -->
+    <aura:attribute name="searchTerm" 		type="String" 				description="SOSL Search Term" />
+    <!--aura:attribute name="searchField" 	type="String" 				description="SOSL Search Field" /-->
+    <aura:attribute name="flagSOSL" 		type="String" 				description="SOSL Flag - use to override SOQL with SOSL" />   
 
     <!-- Messages -->
-    <aura:attribute name="loadingMessage" type="String" default="Loading..." description="String value that will appear when the component is initializing"/>
-    <aura:attribute name="searchingMessage" type="String" default="Searching..." description="String value that will appear when the component is searching"/>
-    <aura:attribute name="noResultsMessage" type="String" default="No results found for {0}" description="String value that will appear when the component finds 0 results"/>
-    <aura:attribute name="errorMessage" type="String" description="String value displayed when the input is in an error state"/>
+    <aura:attribute name="loadingMessage" 	type="String" 	default="Loading..." 				description="String value that will appear when the component is initializing"/>
+    <aura:attribute name="searchingMessage" type="String" 	default="Searching..." 				description="String value that will appear when the component is searching"/>
+    <aura:attribute name="noResultsMessage" type="String" 	default="No results found for {0}" 	description="String value that will appear when the component finds 0 results"/>
+    <aura:attribute name="errorMessage" 	type="String" 										description="String value displayed when the input is in an error state"/>
 
     <!-- New Records -->
-    <aura:attribute name="allowNewRecords" type="Boolean" description="Determines whether the New Record option is displayed"/>
-    <aura:attribute name="overrideNewEvent" type="Boolean" description="Determines whether the standard new event should fire"/>
+    <aura:attribute name="allowNewRecords" 	type="Boolean" 	description="Determines whether the New Record option is displayed"/>
+    <aura:attribute name="overrideNewEvent" type="Boolean" 	description="Determines whether the standard new event should fire"/>
+    <aura:attribute name="newCon" 			type="Boolean" 	description="Determines whether the New Record option is displayed"/>
+    <aura:attribute name="newRecType" 		type="String" 	description="Determines whether the New Record option is displayed"/>
+
 
     <aura:attribute name="showRecentRecords" type="Boolean" description="Determines whether the five most recently viewed records will be displayed when the search field is empty"/>
 
@@ -64,17 +92,25 @@ License: BSD 3-Clause License
     <aura:attribute name="valueSublabel" type="String" description="String value that holds the subtitleField of the selected record" access="private"/>
     <aura:attribute name="isMobile" type="Boolean" default="{!false}" description="Determines if the user is in Salesforce1" access="private"/>
 
-    <!-- Event registration and handlers -->
-    <aura:handler name="init" value="{!this}" action="{!c.onInit}"/>
-    <aura:handler name="change" value="{!v.focusIndex}" action="{!c.handleFocusIndexChange}"/>
-    <aura:handler name="change" value="{!v.value}" action="{!c.handleValueChange}"/>
+    <!--aura:attribute name="valSubLabel0"		type="String"	default="" description="Level 0 Base Field to display" />
+    <aura:attribute name="valSubLabelSide"	type="String"	default="" description="Level 1 Additional fields to display"/>
+    <aura:attribute name="valSubLabel2"		type="String"	default="" description="Level 2 Additional fields to display"/>
+    <aura:attribute name="valSubLabel3"		type="String"	default="" description="Level 3 Additional fields to display"/>
+    <aura:attribute name="valSearchAuxFld"	type="String"	default="" description="Add all additional Fields to search other than SearchField"/>
+    <aura:attribute name="inputText"		type="String" /-->
 
-    <aura:handler name="change" value="{!v.object}" action="{!c.handleObjectChange}"/>
-    <aura:handler name="change" value="{!v.searchField}" action="{!c.handleSearchfieldChange}"/>
-    <aura:handler name="change" value="{!v.subtitleField}" action="{!c.handleSubtitlefieldChange}"/>
-    <aura:handler name="change" value="{!v.filter}" action="{!c.handleFilterChange}"/>
-    <aura:handler name="change" value="{!v.order}" action="{!c.handleOrderChange}"/>
-    <aura:handler name="change" value="{!v.limit}" action="{!c.handleLimitChange}"/>
+    <!-- Event registration and handlers -->
+    <aura:handler name="init" 	value="{!this}" 			action="{!c.onInit}"/>
+    <aura:handler name="change" value="{!v.focusIndex}" 	action="{!c.handleFocusIndexChange}"/>
+    <aura:handler name="change" value="{!v.value}" 			action="{!c.handleValueChange}"/>
+    <!--aura:handler name="change" value="{!v.inputText}" 		action="{!c.handleInputVChg}"/-->
+
+    <aura:handler name="change" value="{!v.object}" 		action="{!c.handleObjectChange}"/>
+    <aura:handler name="change" value="{!v.searchField}" 	action="{!c.handleSearchfieldChange}"/>
+    <aura:handler name="change" value="{!v.subtitleField}" 	action="{!c.handleSubtitlefieldChange}"/>
+    <aura:handler name="change" value="{!v.filter}" 		action="{!c.handleFilterChange}"/>
+    <aura:handler name="change" value="{!v.order}" 			action="{!c.handleOrderChange}"/>
+    <aura:handler name="change" value="{!v.limit}" 			action="{!c.handleLimitChange}"/>
 
     <aura:registerEvent name="strike_evt_addNewRecord" type="c:strike_evt" description="Fires an event that notifies when the strike_evt_addNewRecord button is pressed"/>
     <aura:dependency resource="force:createRecord" type="EVENT"/>
@@ -176,7 +212,15 @@ License: BSD 3-Clause License
                                 </aura:if>
                                 <div class="slds-media__body">
                                     <div class="slds-lookup__result-text">{!record.label}</div>
-                                    <span class="{!'slds-lookup__result-meta slds-text-body--small' + if(empty(record.sublabel, ' slds-hide', ''))}">{!record.sublabel}</span>
+                                    <span class="{!'slds-lookup__result-meta slds-text-body--small' + if(empty(record.sublabel, ' slds-hide', ''))}">
+                                        {!record.sublabel} <!--{!record.sideSubLabel} -->
+                                    </span>
+                                    <!--span class="{!'slds-lookup__result-meta slds-text-body-*-small' + if(empty(record.subLabel2, ' slds-hide', ''))}">
+                                        {!record.subLabel2}
+                                    </span> 
+                                    <span class="{!'slds-lookup__result-meta slds-text-body-*-small' + if(empty(record.subLabel3, ' slds-hide', ''))}">
+                                        {!record.subLabel3}
+                                    </span --> 
                                 </div>
                             </span>
                         </li>
